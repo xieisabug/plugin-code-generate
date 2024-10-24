@@ -43,4 +43,6 @@ declare class TeaPlugin {
 
 declare class TeaAssistantTypePlugin {
     onInit(assistantTypeApi: AssistantTypeApi): void;
+    onSelect(assistantTypeApi: AssistantTypeApi): void;
+    onRun(assistantRunApi: AssistantRunApi): void;
 }

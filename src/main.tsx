@@ -43,7 +43,7 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 
 	onAssistantTypeRun(assistantRunApi: AssistantRunApi) {
 		assistantRunApi.setAiResponse('@tips-loading:正在生成对应文件');
-		const response: any = assistantRunApi.askAI(assistantRunApi.getUserInput(), assistantRunApi.getModelId(), this.prompt + assistantRunApi.getField('prompt'));
+		const response: AskAiResponse = assistantRunApi.askAI(assistantRunApi.getUserInput(), assistantRunApi.getModelId(), this.prompt + assistantRunApi.getField('prompt'));
 		let answer:string = response.answer;
 		// 提取多段f-start和f-end之间的内容
 		const fileContents = answer.match(/@f-start:([\s\S]*?)@f-end/g);

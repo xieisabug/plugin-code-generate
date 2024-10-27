@@ -2,7 +2,7 @@ interface SystemApi {
 }
 
 interface AssistantTypeApi {
-    typeRegist(code: number, label: string): void;
+    typeRegist(code: number, label: string, plugin: TeaAssistantTypePlugin): void;
     changeFieldLabel(fieldName: string, label: string): void;
     addField(fieldName: string, label: string, type: string, fieldConfig?: FieldConfig): void;
     addFieldTips(fieldName: string, tips: string): void;
@@ -42,7 +42,7 @@ declare class TeaPlugin {
 }
 
 declare class TeaAssistantTypePlugin {
-    onInit(assistantTypeApi: AssistantTypeApi): void;
-    onSelect(assistantTypeApi: AssistantTypeApi): void;
-    onRun(assistantRunApi: AssistantRunApi): void;
+    onAssistantTypeInit(assistantTypeApi: AssistantTypeApi): void;
+    onAssistantTypeSelect(assistantTypeApi: AssistantTypeApi): void;
+    onAssistantTypeRun(assistantRunApi: AssistantRunApi): void;
 }

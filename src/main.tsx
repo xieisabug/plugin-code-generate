@@ -26,22 +26,22 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 		console.log('SamplePlugin init')
 	}
 
-	onInit(assistantTypeApi: AssistantTypeApi): void {
-		assistantTypeApi.typeRegist(1, "代码生成助手");
+	onAssistantTypeInit(assistantTypeApi: AssistantTypeApi): void {
+		assistantTypeApi.typeRegist(1, "代码生成助手", this);
 	}
 
-	onSelect(assistantTypeApi: AssistantTypeApi) {
+	onAssistantTypeSelect(assistantTypeApi: AssistantTypeApi) {
 		assistantTypeApi.changeFieldLabel('prompt', "遵循要求");
 		assistantTypeApi.addFieldTips('prompt', "内置生成文件内容格式和自动创建文件的命令，请勿修改模型输出遵循的格式，请指定生产");
-		assistantTypeApi.addField('fileScanDirectory', '文件扫描目录', 'string', {
+		assistantTypeApi.addField('fileScanDirectory', '文件扫描目录', 'input', {
 			required: true
 		});
-		assistantTypeApi.addField('confirmBeforeGenerate', '生成前确认', 'boolean', {
+		assistantTypeApi.addField('confirmBeforeGenerate', '生成前确认', 'checkbox', {
 			required: true
 		});
 	}
 
-	onRun(assistantRunApi: AssistantRunApi) {
+	onAssistantTypeRun(assistantRunApi: AssistantRunApi) {
 		assistantRunApi.setAiResponse('@tips-loading:正在生成对应文件');
 		const response: any = assistantRunApi.askAI(assistantRunApi.getUserInput(), assistantRunApi.getModelId(), this.prompt + assistantRunApi.getField('prompt'));
 		let answer:string = response.answer;

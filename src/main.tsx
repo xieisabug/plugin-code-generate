@@ -13,7 +13,8 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 	- 生成的文件内容需要包含文件的全部内容，不要省略
 
 	以下是对生成代码的要求：
-	`
+	`;
+	answer: string = '';
 
 	config(): Config {
 		return {
@@ -42,17 +43,26 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 	}
 
 	onAssistantTypeRun(assistantRunApi: AssistantRunApi) {
-		assistantRunApi.setAiResponse('@tips-loading:正在生成对应文件');
-		const response: AskAiResponse = assistantRunApi.askAI(assistantRunApi.getUserInput(), assistantRunApi.getModelId(), this.prompt + assistantRunApi.getField('prompt'));
-		let answer:string = response.answer;
-		// 提取多段f-start和f-end之间的内容
-		const fileContents = answer.match(/@f-start:([\s\S]*?)@f-end/g);
-		if (fileContents) {
-			for (const fileContent of fileContents) {
-				const [filePath, content] = fileContent.split(':').map((str: string) => str.trim());
-				fs.writeFileSync(filePath, content);
+		this.answer = '';
+		const newSystemApi = this.prompt + assistantRunApi.getField('prompt');
+		assistantRunApi.askAssistant(assistantRunApi.getUserInput(), assistantRunApi.getAssistantId(), undefined, undefined, undefined, (payload: string, aiResponse: AiResponse, responseIsResponsingFunction: (isFinish : boolean) => void) => {
+			assistantRunApi.setAiResponse(aiResponse.add_message_id, '@tips-loading:正在生成对应文件');
+			if (payload !== "Tea::Event::MessageFinish") {
+				// 更新messages的最后一个对象
+				this.answer = payload;
+			} else {
+				// 提取多段f-start和f-end之间的内容
+				const fileContents = this.answer.match(/@f-start:([\s\S]*?)@f-end/g);
+				if (fileContents) {
+					for (const fileContent of fileContents) {
+						const [filePath, content] = fileContent.split(':').map((str: string) => str.trim());
+						fs.writeFileSync(filePath, content);
+					}
+				}
+				assistantRunApi.setAiResponse(aiResponse.add_message_id, '@tips-success:生成完成');
+				responseIsResponsingFunction(false);
 			}
-		}
-		assistantRunApi.setAiResponse('@tips-success:生成完成');
+			
+		});
 	}
 }

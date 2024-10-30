@@ -44,8 +44,8 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 
 	onAssistantTypeRun(assistantRunApi: AssistantRunApi) {
 		this.answer = '';
-		const newSystemApi = this.prompt + assistantRunApi.getField('prompt');
-		assistantRunApi.askAssistant(assistantRunApi.getUserInput(), assistantRunApi.getAssistantId(), undefined, undefined, undefined, (payload: string, aiResponse: AiResponse, responseIsResponsingFunction: (isFinish : boolean) => void) => {
+		const newSystemPrompt = this.prompt + assistantRunApi.getField('prompt');
+		assistantRunApi.askAssistant(assistantRunApi.getUserInput(), assistantRunApi.getAssistantId(), "", [ ["stream", false] ], newSystemPrompt, undefined, undefined, (payload: string, aiResponse: AiResponse, responseIsResponsingFunction: (isFinish : boolean) => void) => {
 			assistantRunApi.setAiResponse(aiResponse.add_message_id, '@tips-loading:正在生成对应文件');
 			if (payload !== "Tea::Event::MessageFinish") {
 				// 更新messages的最后一个对象

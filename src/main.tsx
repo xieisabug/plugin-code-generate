@@ -44,25 +44,36 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 
 	onAssistantTypeRun(assistantRunApi: AssistantRunApi) {
 		this.answer = '';
+		let isInitMessage = false;
 		const newSystemPrompt = this.prompt + assistantRunApi.getField('prompt');
-		assistantRunApi.askAssistant(assistantRunApi.getUserInput(), assistantRunApi.getAssistantId(), "", [ ["stream", false] ], newSystemPrompt, undefined, undefined, (payload: string, aiResponse: AiResponse, responseIsResponsingFunction: (isFinish : boolean) => void) => {
-			assistantRunApi.setAiResponse(aiResponse.add_message_id, '@tips-loading:正在生成对应文件');
-			if (payload !== "Tea::Event::MessageFinish") {
-				// 更新messages的最后一个对象
-				this.answer = payload;
-			} else {
-				// 提取多段f-start和f-end之间的内容
-				const fileContents = this.answer.match(/@f-start:([\s\S]*?)@f-end/g);
-				if (fileContents) {
-					for (const fileContent of fileContents) {
-						const [filePath, content] = fileContent.split(':').map((str: string) => str.trim());
-						fs.writeFileSync(filePath, content);
-					}
+		assistantRunApi.askAssistant(assistantRunApi.getUserInput(), assistantRunApi.getAssistantId(), "", [["stream", false]], newSystemPrompt,
+			undefined, undefined, (payload: string, aiResponse: AiResponse, responseIsResponsingFunction: (isFinish: boolean) => void) => {
+				if (!isInitMessage) {
+					assistantRunApi.setAiResponse(aiResponse.add_message_id, '@tips-loading:正在生成对应文件');
+					isInitMessage = true;
 				}
-				assistantRunApi.setAiResponse(aiResponse.add_message_id, '@tips-success:生成完成');
-				responseIsResponsingFunction(false);
-			}
-			
-		});
+				if (payload !== "Tea::Event::MessageFinish") {
+					// 更新messages的最后一个对象
+					this.answer = payload;
+					console.log("plugin answer", this.answer);
+				} else {
+					console.log("plugin answer finish", this.answer);
+					// 提取多段f-start和f-end之间的内容
+					const fileContents = this.answer.match(/@f-start:([\s\S]*?)@f-end/g);
+					console.log("plugin file content", fileContents)
+					if (fileContents) {
+						for (const fileContent of fileContents) {
+							const [filePath, content] = fileContent.split(':').map((str: string) => str.trim());
+							console.log("plugin write file", filePath, content);
+							fs.writeFileSync(filePath, content);
+							console.log("plugin write success");
+						}
+					}
+					assistantRunApi.setAiResponse(aiResponse.add_message_id, '@tips-success:生成完成');
+					console.log("plugin finish");
+					responseIsResponsingFunction(false);
+				}
+
+			});
 	}
 }

@@ -1,5 +1,5 @@
 import './index.css'
-import fs from 'fs'
+import { writeTextFile } from '@tauri-apps/api/fs';
 
 export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 	prompt: string = `
@@ -65,7 +65,7 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 						for (const fileContent of fileContents) {
 							const [filePath, content] = fileContent.split(':').map((str: string) => str.trim());
 							console.log("plugin write file", filePath, content);
-							fs.writeFileSync(filePath, content);
+							writeTextFile(filePath, content);
 							console.log("plugin write success");
 						}
 					}

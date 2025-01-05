@@ -1,5 +1,5 @@
 import './index.css'
-import { writeTextFile, createDir } from '@tauri-apps/plugin-fs';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { open } from '@tauri-apps/plugin-dialog';
 
 export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
@@ -16,23 +16,23 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 
 以下是对生成代码的要求：
 	`;
-  filePath: string = `\n生成代码的路径为: `;
-  answer: string = "";
+	filePath: string = `\n生成代码的路径为: `;
+	answer: string = "";
 
-  config(): Config {
-    return {
-      name: "代码生成",
-      type: ["assistantType"],
-    };
-  }
+	config(): Config {
+		return {
+			name: "代码生成",
+			type: ["assistantType"],
+		};
+	}
 
-  onPluginLoad(_: SystemApi) {
-    console.log("SamplePlugin init");
-  }
+	onPluginLoad(_: SystemApi) {
+		console.log("SamplePlugin init");
+	}
 
-  onAssistantTypeInit(assistantTypeApi: AssistantTypeApi): void {
-    assistantTypeApi.typeRegist(1, "代码生成助手", this);
-  }
+	onAssistantTypeInit(assistantTypeApi: AssistantTypeApi): void {
+		assistantTypeApi.typeRegist(1, "代码生成助手", this);
+	}
 
 	onAssistantTypeSelect(assistantTypeApi: AssistantTypeApi) {
 		assistantTypeApi.changeFieldLabel('prompt', "遵循要求");
@@ -45,7 +45,7 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 				open({
 					directory: true,
 					multiple: false
-				}).then((path: string|null) => {
+				}).then((path: string | null) => {
 					console.log("fileScanDirectoryChoose", path);
 					if (path) {
 						assistantConfigApi.changeFieldValue('fileScanDirectory', path, 'string');
@@ -61,68 +61,66 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 		});
 	}
 
-  onAssistantTypeRun(assistantRunApi: AssistantRunApi) {
-    this.answer = "";
-    let isInitMessage = false;
-    const assistantId = assistantRunApi.getAssistantId();
-    Promise.all([
-      assistantRunApi.getField(assistantId, "prompt"),
-      assistantRunApi.getField(assistantId, "fileScanDirectory"),
-      assistantRunApi.getField(assistantId, "confirmBeforeGenerate"),
-    ]).then(([prompt, fileScanDirectory, confirmBeforeGenerate]) => {
-      console.log(
-        "plugin run",
-        prompt,
-        fileScanDirectory,
-        confirmBeforeGenerate,
-      );
+	onAssistantTypeRun(assistantRunApi: AssistantRunApi) {
+		this.answer = "";
+		let isInitMessage = false;
+		const assistantId = assistantRunApi.getAssistantId();
+		Promise.all([
+			assistantRunApi.getField(assistantId, "prompt"),
+			assistantRunApi.getField(assistantId, "fileScanDirectory"),
+			assistantRunApi.getField(assistantId, "confirmBeforeGenerate"),
+		]).then(([prompt, fileScanDirectory, confirmBeforeGenerate]) => {
+			console.log(
+				"plugin run",
+				prompt,
+				fileScanDirectory,
+				confirmBeforeGenerate,
+			);
 
-				const newSystemPrompt = this.prompt + prompt + this.filePath + fileScanDirectory;
-				assistantRunApi.askAssistant(assistantRunApi.getUserInput(), assistantId, "", { "stream": false }, newSystemPrompt,
-					undefined, undefined, (payload: string, aiResponse: AiResponse, responseIsResponsingFunction: (isFinish: boolean) => void) => {
-						if (!isInitMessage) {
-							assistantRunApi.setAiResponse(aiResponse.add_message_id, '@tips-loading:正在生成对应文件');
-							isInitMessage = true;
+			const newSystemPrompt = this.prompt + prompt + this.filePath + fileScanDirectory;
+			assistantRunApi.askAssistant(assistantRunApi.getUserInput(), assistantId, "", { "stream": false }, newSystemPrompt,
+				undefined, undefined, (payload: string, aiResponse: AiResponse, responseIsResponsingFunction: (isFinish: boolean) => void) => {
+					if (!isInitMessage) {
+						assistantRunApi.setAiResponse(aiResponse.add_message_id, '@tips-loading:正在生成对应文件');
+						isInitMessage = true;
+					}
+					if (payload !== "Tea::Event::MessageFinish") {
+						// 更新messages的最后一个对象
+						this.answer = payload;
+						console.log("plugin answer", this.answer);
+					} else {
+						console.log("plugin answer finish", this.answer);
+						// 提取多段f-start和f-end之间的内容
+						const fileContents = this.answer.match(/@f-start:(.+?)\s+([\s\S]*?)\s+@f-end/g);
+						console.log("plugin file content", fileContents);
+
+						if (fileContents) {
+							for (const fileContent of fileContents) {
+								const match = /@f-start:(.+?)\s+([\s\S]*?)\s+@f-end/.exec(
+									fileContent,
+								);
+								if (match) {
+									const filePath = match[1].trim();
+									let content = match[2].trim();
+									content = content
+										.replace(/^```\w*\n([\s\S]*?)\n```$/gm, "$1")
+										.trim();
+
+									console.log("plugin write file", filePath, content);
+									writeTextFile(filePath, content);
+									console.log("plugin write success");
+								}
+							}
 						}
-						if (payload !== "Tea::Event::MessageFinish") {
-							// 更新messages的最后一个对象
-							this.answer = payload;
-							console.log("plugin answer", this.answer);
-						} else {
-							console.log("plugin answer finish", this.answer);
-							// 提取多段f-start和f-end之间的内容
-							const fileContents = this.answer.match(/@f-start:(.+?)\s+([\s\S]*?)\s+@f-end/g);
-							console.log("plugin file content", fileContents);
 
-              if (fileContents) {
-                for (const fileContent of fileContents) {
-                  const match = /@f-start:(.+?)\s+([\s\S]*?)\s+@f-end/.exec(
-                    fileContent,
-                  );
-                  if (match) {
-                    const filePath = match[1].trim();
-                    let content = match[2].trim();
-                    content = content
-                      .replace(/^```\w*\n([\s\S]*?)\n```$/gm, "$1")
-                      .trim();
-
-                    console.log("plugin write file", filePath, content);
-                    writeTextFile(filePath, content);
-                    console.log("plugin write success");
-                  }
-                }
-              }
-
-              assistantRunApi.setAiResponse(
-                aiResponse.add_message_id,
-                "@tips-success:生成完成",
-              );
-              console.log("plugin finish");
-              responseIsResponsingFunction(false);
-            }
-          });
-        },
-      );
-    });
-  }
+						assistantRunApi.setAiResponse(
+							aiResponse.add_message_id,
+							"@tips-success:生成完成",
+						);
+						console.log("plugin finish");
+						responseIsResponsingFunction(false);
+					}
+				});
+		});
+	};
 }

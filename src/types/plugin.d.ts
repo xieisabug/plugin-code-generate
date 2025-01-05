@@ -5,6 +5,7 @@ interface AssistantTypeApi {
     typeRegist(code: number, label: string, plugin: TeaAssistantTypePlugin): void;
     changeFieldLabel(fieldName: string, label: string): void;
     addField(fieldName: string, label: string, type: string, fieldConfig?: FieldConfig): void;
+    hideField(fieldName: string): void;
     forceFieldValue(fieldName: string, value: string): void;
     addFieldTips(fieldName: string, tips: string): void;
     runLogic(callback: (assistantRunApi: AssistantRunApi) => void): void;
@@ -18,11 +19,18 @@ interface FieldConfig {
     // default false
     hidden?: boolean;
     tips?: string;
+    onClick?: (assistantConfigApi: AssistantConfigApi) => void;
+    value?: string;
+}
+
+interface AssistantConfigApi {
+    clearFieldValue(fieldName: string): void;
+    changeFieldValue(fieldName: string, value: string | boolean, valueType: string): void;
 }
 
 interface AssistantRunApi {
     askAI(question: string, modelId: string, prompt?: string, conversationId?: string): AskAiResponse;
-    askAssistant(question: string, assistantId: string, conversationId?: string, overrideModelConfig?: Array<[string, any]>, overrideSystemPrompt?: string,
+    askAssistant(question: string, assistantId: string, conversationId?: string, overrideModelConfig?: map<string, any>, overrideSystemPrompt?: string,
         onCustomUserMessage?: (question: string, assistantId: string, conversationId?: string) => any,
         onCustomUserMessageComing?: (aiResponse: AiResponse) => void,
         onStreamMessageListener?: (payload: string, aiResponse: AiResponse, responseIsResponsingFunction: (isFinish: boolean) => void) => void): Promise<AiResponse>;

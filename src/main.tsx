@@ -1,5 +1,6 @@
 import './index.css'
-import { writeTextFile } from '@tauri-apps/api/fs';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { open } from '@tauri-apps/plugin-dialog';
 
 export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 	prompt: string = `
@@ -11,6 +12,7 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 	格式额外要求：
 	- 生成的path包含对应的文件名
 	- 生成的文件内容需要包含文件的全部内容，不要省略
+	- @f-start和@f-end的前后都不需要有代码块
 
 	以下是对生成代码的要求：
 	`;
@@ -35,8 +37,24 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 	onAssistantTypeSelect(assistantTypeApi: AssistantTypeApi) {
 		assistantTypeApi.changeFieldLabel('prompt', "遵循要求");
 		assistantTypeApi.addFieldTips('prompt', "内置生成文件内容格式和自动创建文件的命令，请勿修改模型输出遵循的格式，请指定生产");
-		assistantTypeApi.addField('fileScanDirectory', '文件扫描目录', 'input', {
-			required: true
+		assistantTypeApi.hideField('stream');
+		assistantTypeApi.addField('fileScanDirectoryChoose', '选择文件扫描目录', 'button', {
+			required: true,
+			value: '选择目录',
+			onClick: (assistantConfigApi: AssistantConfigApi) => {
+				open({
+					directory: true,
+					multiple: false
+				}).then((path: string|null) => {
+					console.log("fileScanDirectoryChoose", path);
+					if (path) {
+						assistantConfigApi.changeFieldValue('fileScanDirectory', path, 'string');
+					}
+				})
+			}
+		});
+		assistantTypeApi.addField('fileScanDirectory', '文件扫描目录', 'static', {
+			required: true,
 		});
 		assistantTypeApi.addField('confirmBeforeGenerate', '生成前确认', 'checkbox', {
 			required: true
@@ -53,7 +71,7 @@ export default class SamplePlugin implements TeaPlugin, TeaAssistantTypePlugin {
 				console.log("plugin run", prompt, fileScanDirectory, confirmBeforeGenerate);
 
 				const newSystemPrompt = this.prompt + prompt + this.filePath + fileScanDirectory;
-				assistantRunApi.askAssistant(assistantRunApi.getUserInput(), assistantId, "", [["stream", false]], newSystemPrompt,
+				assistantRunApi.askAssistant(assistantRunApi.getUserInput(), assistantId, "", { "stream": false }, newSystemPrompt,
 					undefined, undefined, (payload: string, aiResponse: AiResponse, responseIsResponsingFunction: (isFinish: boolean) => void) => {
 						if (!isInitMessage) {
 							assistantRunApi.setAiResponse(aiResponse.add_message_id, '@tips-loading:正在生成对应文件');
